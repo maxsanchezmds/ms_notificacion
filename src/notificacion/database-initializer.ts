@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabasePool } from './database-pool';
 import {
   getDatabaseSchema,
+  getMensajeriaTableName,
   getNotificacionTableName,
   getPedidosTableName,
   quoteIdentifier,
@@ -15,6 +16,7 @@ export class DatabaseInitializer {
     const schema = getDatabaseSchema();
     const notificacionTableName = getNotificacionTableName();
     const pedidosTableName = getPedidosTableName();
+    const mensajeriaTableName = getMensajeriaTableName();
 
     await this.databasePool.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schema)}`);
     await this.databasePool.query(`
@@ -62,6 +64,16 @@ export class DatabaseInitializer {
           FOREIGN KEY (id_pedido) REFERENCES ${pedidosTableName}(id_pedido);
         END IF;
       END $$;
+    `);
+    await this.databasePool.query(`
+      CREATE TABLE IF NOT EXISTS ${mensajeriaTableName} (
+        id_mensaje UUID PRIMARY KEY,
+        asunto TEXT NOT NULL,
+        cuerpo TEXT NOT NULL,
+        responsable TEXT NOT NULL,
+        fecha_envio TIMESTAMPTZ NOT NULL,
+        destinatarios TEXT[] NOT NULL CHECK (array_length(destinatarios, 1) > 0)
+      )
     `);
   }
 }

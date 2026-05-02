@@ -22,3 +22,7 @@ export function getNotificacionTableName(): string {
 export function getPedidosTableName(): string {
   return `${quoteIdentifier(getDatabaseSchema())}.pedidos`;
 }
+
+export function getMensajeriaTableName(): string {
+  return `${quoteIdentifier(getDatabaseSchema())}.mensajeria`;
+}
