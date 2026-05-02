@@ -10,3 +10,26 @@ export interface Notificacion {
   mensaje: string;
   status: NotificacionStatus;
 }
+
+export interface Mensajeria {
+  id_mensaje: string;
+  asunto: string;
+  cuerpo: string;
+  responsable: string;
+  fecha_envio: Date;
+  destinatarios: string[];
+}
+
+export interface CreateMensajeriaRequest {
+  asunto?: unknown;
+  cuerpo?: unknown;
+  responsable?: unknown;
+  fecha_envio?: unknown;
+  destinatarios?: unknown;
+}
+
+export type UpdateMensajeriaRequest = CreateMensajeriaRequest;
+
+export type CreateMensajeriaData = Mensajeria;
+
+export type MensajeriaUpdateFields = Partial<Omit<Mensajeria, 'id_mensaje'>>;
