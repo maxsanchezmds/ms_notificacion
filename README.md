@@ -5,11 +5,12 @@ Microservicio NestJS en TypeScript para registrar notificaciones derivadas de ev
 ## Comportamiento
 
 - Consume mensajes desde SQS usando `QUEUE_URL`.
-- Cuando recibe el evento `pedido_cancelado`, inserta un registro en la tabla `notificacion`.
+- Cuando recibe el evento `pedido_cancelado` con `pedido.id_pedido`, inserta un registro en la tabla `notificacion`.
 - El mensaje registrado es `Buenas tardes estimado/a su pedido fue cancelado con exito`.
 - El estado inicial es `sin entregar`.
 - La fecha se resuelve en PostgreSQL con `NOW()`.
 - La PK se genera como UUID.
+- `notificacion.id_pedido` referencia al pedido cancelado. La FK contra `pedidos(id_pedido)` se declara automaticamente cuando ambas tablas existen en la misma base y schema PostgreSQL.
 
 ## Variables de entorno
 

@@ -18,3 +18,7 @@ export function quoteIdentifier(identifier: string): string {
 export function getNotificacionTableName(): string {
   return `${quoteIdentifier(getDatabaseSchema())}.notificacion`;
 }
+
+export function getPedidosTableName(): string {
+  return `${quoteIdentifier(getDatabaseSchema())}.pedidos`;
+}

@@ -5,6 +5,7 @@ export type NotificacionStatus = 'entregado' | 'sin entregar' | 'esperando revis
 
 export interface Notificacion {
   id_notificacion: string;
+  id_pedido: string;
   fecha: Date;
   mensaje: string;
   status: NotificacionStatus;

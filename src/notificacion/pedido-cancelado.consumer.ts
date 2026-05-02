@@ -5,6 +5,9 @@ import { PEDIDO_CANCELADO_EVENTO } from './notificacion.types';
 
 interface PedidoEventPayload {
   evento?: string;
+  pedido?: {
+    id_pedido?: unknown;
+  };
 }
 
 @Injectable()
@@ -62,8 +65,14 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
     const payload = this.parseMessageBody(message.Body);
 
     if (payload?.evento === PEDIDO_CANCELADO_EVENTO) {
-      await this.notificacionRepository.createPedidoCancelado();
-      this.logger.log('Notificacion registrada para evento pedido_cancelado.');
+      const idPedido = this.extractIdPedido(payload);
+
+      if (idPedido) {
+        await this.notificacionRepository.createPedidoCancelado(idPedido);
+        this.logger.log(`Notificacion registrada para evento pedido_cancelado del pedido ${idPedido}.`);
+      } else {
+        this.logger.warn('Evento pedido_cancelado ignorado porque no incluye pedido.id_pedido valido.');
+      }
     }
 
     await this.sqsClient.send(
@@ -108,6 +117,16 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
       'Message' in value &&
       typeof (value as { Message: unknown }).Message === 'string'
     );
+  }
+
+  private extractIdPedido(payload: PedidoEventPayload): string | null {
+    const idPedido = payload.pedido?.id_pedido;
+
+    return typeof idPedido === 'string' && this.isUuid(idPedido) ? idPedido : null;
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 
   private sleep(milliseconds: number): Promise<void> {

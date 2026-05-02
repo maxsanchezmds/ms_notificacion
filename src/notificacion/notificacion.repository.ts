@@ -12,14 +12,14 @@ export class NotificacionRepository {
     this.notificacionTableName = getNotificacionTableName();
   }
 
-  async createPedidoCancelado(): Promise<Notificacion> {
+  async createPedidoCancelado(idPedido: string): Promise<Notificacion> {
     const result = await this.databasePool.query<Notificacion>(
       `
-        INSERT INTO ${this.notificacionTableName} (id_notificacion, mensaje)
-        VALUES ($1, $2)
-        RETURNING id_notificacion, fecha, mensaje, status
+        INSERT INTO ${this.notificacionTableName} (id_notificacion, id_pedido, mensaje)
+        VALUES ($1, $2, $3)
+        RETURNING id_notificacion, id_pedido, fecha, mensaje, status
       `,
-      [randomUUID(), NOTIFICACION_CANCELACION_MENSAJE],
+      [randomUUID(), idPedido, NOTIFICACION_CANCELACION_MENSAJE],
     );
 
     return result.rows[0] as Notificacion;
