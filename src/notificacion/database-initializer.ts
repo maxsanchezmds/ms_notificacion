@@ -22,7 +22,10 @@ export class DatabaseInitializer {
     await this.databasePool.query(`
       CREATE TABLE IF NOT EXISTS ${notificacionTableName} (
         id_notificacion UUID PRIMARY KEY,
-        id_pedido UUID NOT NULL,
+        id_pedido UUID,
+        tipo_notificacion VARCHAR(40) NOT NULL DEFAULT 'pedido_finalizado' CHECK (
+          tipo_notificacion IN ('envio_aprobado', 'envio_rechazado', 'envio_atrasado', 'pedido_finalizado')
+        ),
         fecha TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         mensaje TEXT NOT NULL,
         status VARCHAR(30) NOT NULL DEFAULT 'sin entregar' CHECK (
@@ -35,18 +38,21 @@ export class DatabaseInitializer {
       ADD COLUMN IF NOT EXISTS id_pedido UUID
     `);
     await this.databasePool.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_constraint
-          WHERE conname = 'notificacion_id_pedido_required'
-            AND conrelid = '${notificacionTableName}'::regclass
-        ) THEN
-          ALTER TABLE ${notificacionTableName}
-          ADD CONSTRAINT notificacion_id_pedido_required CHECK (id_pedido IS NOT NULL) NOT VALID;
-        END IF;
-      END $$;
+      ALTER TABLE ${notificacionTableName}
+      ADD COLUMN IF NOT EXISTS tipo_notificacion VARCHAR(40) NOT NULL DEFAULT 'pedido_finalizado'
+    `);
+    await this.databasePool.query(`
+      ALTER TABLE ${notificacionTableName}
+      DROP CONSTRAINT IF EXISTS notificacion_id_pedido_required
+    `);
+    await this.databasePool.query(`
+      ALTER TABLE ${notificacionTableName}
+      DROP CONSTRAINT IF EXISTS notificacion_tipo_notificacion_check
+    `);
+    await this.databasePool.query(`
+      ALTER TABLE ${notificacionTableName}
+      ADD CONSTRAINT notificacion_tipo_notificacion_check
+      CHECK (tipo_notificacion IN ('envio_aprobado', 'envio_rechazado', 'envio_atrasado', 'pedido_finalizado'))
     `);
     await this.databasePool.query(`
       DO $$

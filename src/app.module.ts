@@ -6,8 +6,8 @@ import { MensajeriaRequestValidator } from './notificacion/mensajeria-request-va
 import { MensajeriaRepository } from './notificacion/mensajeria.repository';
 import { MensajeriaService } from './notificacion/mensajeria.service';
 import { NotificacionController } from './notificacion/notificacion.controller';
+import { NotificacionEventsConsumer } from './notificacion/notificacion-events.consumer';
 import { NotificacionRepository } from './notificacion/notificacion.repository';
-import { PedidoCanceladoConsumer } from './notificacion/pedido-cancelado.consumer';
 
 @Module({
   controllers: [HealthController, NotificacionController],
@@ -18,7 +18,7 @@ import { PedidoCanceladoConsumer } from './notificacion/pedido-cancelado.consume
     MensajeriaRepository,
     MensajeriaService,
     MensajeriaRequestValidator,
-    PedidoCanceladoConsumer,
+    NotificacionEventsConsumer,
   ],
 })
 export class AppModule {}
