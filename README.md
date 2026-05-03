@@ -1,16 +1,16 @@
 # ms_notificacion
 
-Microservicio NestJS en TypeScript para registrar notificaciones derivadas de eventos de pedidos.
+Microservicio NestJS en TypeScript para registrar notificaciones derivadas de eventos.
 
 ## Comportamiento
 
 - Consume mensajes desde SQS usando `QUEUE_URL`.
-- Cuando recibe el evento `pedido_cancelado` con `pedido.id_pedido`, inserta un registro en la tabla `notificacion`.
-- El mensaje registrado es `Buenas tardes estimado/a su pedido fue cancelado con exito`.
+- Cuando recibe `envio_aprobado`, `envio_rechazado`, `envio_atrasado` o `pedido_finalizado`, inserta un registro en la tabla `notificacion`.
+- Registra `tipo_notificacion`, `mensaje`, `id_pedido` cuando el evento lo incluye, estado y fecha.
 - El estado inicial es `sin entregar`.
 - La fecha se resuelve en PostgreSQL con `NOW()`.
 - La PK se genera como UUID.
-- `notificacion.id_pedido` referencia al pedido cancelado. La FK contra `pedidos(id_pedido)` se declara automaticamente cuando ambas tablas existen en la misma base y schema PostgreSQL.
+- `notificacion.id_pedido` es opcional y referencia al pedido cuando ambas tablas existen en la misma base y schema PostgreSQL.
 
 ## Variables de entorno
 
@@ -29,6 +29,6 @@ Tambien se soportan `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE
 
 ## CI/CD
 
-- PR: crea un preview aislado con `srv-notificaciones-pr-<numero>`, una cola SQS preview, una suscripcion SNS filtrada a `pedido_cancelado`, un schema `pr_<numero>` y un Kong preview para smoke tests.
+- PR: crea un preview aislado con `srv-notificaciones-pr-<numero>`, una cola SQS preview, suscripciones SNS filtradas a los eventos de notificacion, un schema `pr_<numero>` y un Kong preview para smoke tests.
 - Cierre de PR: elimina ECS/Kong preview, cola SQS, suscripcion SNS y schema efimero.
 - `main`: construye la imagen, la publica en ECR y despliega ECS con promocion estable/canary coherente con el gateway.

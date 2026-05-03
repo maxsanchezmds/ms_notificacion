@@ -1,18 +1,13 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { DeleteMessageCommand, Message, ReceiveMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
 import { NotificacionRepository } from './notificacion.repository';
-import { PEDIDO_CANCELADO_EVENTO } from './notificacion.types';
+import { NOTIFICACION_EVENTOS, NotificacionEventPayload, NotificacionTipo } from './notificacion.types';
 
-interface PedidoEventPayload {
-  evento?: string;
-  pedido?: {
-    id_pedido?: unknown;
-  };
-}
+const NOTIFICACION_CONSUMED_EVENTOS = new Set<string>(Object.values(NOTIFICACION_EVENTOS));
 
 @Injectable()
-export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(PedidoCanceladoConsumer.name);
+export class NotificacionEventsConsumer implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(NotificacionEventsConsumer.name);
   private readonly sqsClient = new SQSClient({});
   private readonly queueUrl = process.env.QUEUE_URL?.trim();
   private isRunning = false;
@@ -22,7 +17,7 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     if (!this.queueUrl) {
-      this.logger.warn('QUEUE_URL no esta configurado; no se consumiran eventos de pedido_cancelado.');
+      this.logger.warn('QUEUE_URL no esta configurado; no se consumiran eventos de notificacion.');
       return;
     }
 
@@ -64,15 +59,10 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
 
     const payload = this.parseMessageBody(message.Body);
 
-    if (payload?.evento === PEDIDO_CANCELADO_EVENTO) {
+    if (payload) {
       const idPedido = this.extractIdPedido(payload);
-
-      if (idPedido) {
-        await this.notificacionRepository.createPedidoCancelado(idPedido);
-        this.logger.log(`Notificacion registrada para evento pedido_cancelado del pedido ${idPedido}.`);
-      } else {
-        this.logger.warn('Evento pedido_cancelado ignorado porque no incluye pedido.id_pedido valido.');
-      }
+      await this.notificacionRepository.createFromEvent(payload.evento, idPedido);
+      this.logger.log(`Notificacion registrada para evento ${payload.evento}.`);
     }
 
     await this.sqsClient.send(
@@ -83,7 +73,7 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  private parseMessageBody(body: string | undefined): PedidoEventPayload | null {
+  private parseMessageBody(body: string | undefined): NotificacionEventPayload | null {
     if (!body) {
       return null;
     }
@@ -91,13 +81,13 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
     try {
       const parsed = JSON.parse(body) as unknown;
 
-      if (this.isPedidoEventPayload(parsed)) {
+      if (this.isNotificacionEventPayload(parsed)) {
         return parsed;
       }
 
       if (this.isSnsEnvelope(parsed)) {
         const snsMessage = JSON.parse(parsed.Message) as unknown;
-        return this.isPedidoEventPayload(snsMessage) ? snsMessage : null;
+        return this.isNotificacionEventPayload(snsMessage) ? snsMessage : null;
       }
     } catch (error) {
       this.logger.warn(`Mensaje SQS ignorado por JSON invalido: ${(error as Error).message}`);
@@ -106,8 +96,18 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
     return null;
   }
 
-  private isPedidoEventPayload(value: unknown): value is PedidoEventPayload {
-    return typeof value === 'object' && value !== null && 'evento' in value;
+  private isNotificacionEventPayload(value: unknown): value is NotificacionEventPayload {
+    if (typeof value !== 'object' || value === null || !('evento' in value)) {
+      return false;
+    }
+
+    const evento = (value as { evento?: unknown }).evento;
+    return typeof evento === 'string' && NOTIFICACION_CONSUMED_EVENTOS.has(evento);
+  }
+
+  private extractIdPedido(payload: NotificacionEventPayload): string | null {
+    const idPedido = payload.pedido?.id_pedido ?? payload.id_pedido;
+    return typeof idPedido === 'string' && /^[0-9a-f-]{36}$/i.test(idPedido.trim()) ? idPedido.trim() : null;
   }
 
   private isSnsEnvelope(value: unknown): value is { Message: string } {
@@ -117,16 +117,6 @@ export class PedidoCanceladoConsumer implements OnModuleInit, OnModuleDestroy {
       'Message' in value &&
       typeof (value as { Message: unknown }).Message === 'string'
     );
-  }
-
-  private extractIdPedido(payload: PedidoEventPayload): string | null {
-    const idPedido = payload.pedido?.id_pedido;
-
-    return typeof idPedido === 'string' && this.isUuid(idPedido) ? idPedido : null;
-  }
-
-  private isUuid(value: string): boolean {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   }
 
   private sleep(milliseconds: number): Promise<void> {

@@ -1,14 +1,35 @@
-export const PEDIDO_CANCELADO_EVENTO = 'pedido_cancelado';
-export const NOTIFICACION_CANCELACION_MENSAJE = 'Buenas tardes estimado/a su pedido fue cancelado con exito';
+export const NOTIFICACION_EVENTOS = {
+  ENVIO_APROBADO: 'envio_aprobado',
+  ENVIO_RECHAZADO: 'envio_rechazado',
+  ENVIO_ATRASADO: 'envio_atrasado',
+  PEDIDO_FINALIZADO: 'pedido_finalizado',
+} as const;
+
+export const NOTIFICACION_MENSAJES: Record<NotificacionTipo, string> = {
+  envio_aprobado: 'Envio aprobado.',
+  envio_rechazado: 'Envio rechazado, solicite de nuevo.',
+  envio_atrasado: 'Su envio esta atrasado.',
+  pedido_finalizado: 'Pedido finalizado.',
+};
 
 export type NotificacionStatus = 'entregado' | 'sin entregar' | 'esperando revision';
+export type NotificacionTipo = (typeof NOTIFICACION_EVENTOS)[keyof typeof NOTIFICACION_EVENTOS];
 
 export interface Notificacion {
   id_notificacion: string;
-  id_pedido: string;
+  id_pedido: string | null;
+  tipo_notificacion: NotificacionTipo;
   fecha: Date;
   mensaje: string;
   status: NotificacionStatus;
+}
+
+export interface NotificacionEventPayload {
+  evento: NotificacionTipo;
+  pedido?: {
+    id_pedido?: unknown;
+  };
+  id_pedido?: unknown;
 }
 
 export interface Mensajeria {
